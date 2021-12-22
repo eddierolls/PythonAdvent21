@@ -7,11 +7,14 @@ Created on Wed Dec 22 18:28:58 2021
 from copy import copy
 
 def findIntersection(b1,b2):
-    overlap = tuple([(max(b1[x][0],b2[x][0]),min(b1[x][1],b2[x][1])) for x in range(3)])
-    if any([overlap[x][0]>overlap[x][1] for x in range(3)]):
-        return None
-    else:
-        return overlap
+    overlap = []
+    for x in range(3):
+        c1,c2 = max(b1[x][0],b2[x][0]),min(b1[x][1],b2[x][1])
+        if c1>c2:
+            return None
+        else:
+            overlap.append((c1,c2))
+    return tuple(overlap)
 
 def boxSize(b):
     dims = [b[x][1]-b[x][0]+1 for x in range(3)]
@@ -46,9 +49,7 @@ for line in f:
     
     onBoxes = newOnBoxes
     offBoxes = newOffBoxes
-    print(len(onBoxes),len(offBoxes))
 
 score = sum([boxSize(b) for b in onBoxes]) - sum([boxSize(b) for b in offBoxes])
 print(score)
-
     
