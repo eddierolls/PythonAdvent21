@@ -16,6 +16,7 @@ costMap = {'A':1,
            'B':10,
            'C':100,
            'D':1000}
+roomEnds = [8,9,9.5,10,10.5,11,11.5,12,12.5,13,14]
 
 class GameBoard:
     def __init__(self,state):
@@ -58,25 +59,26 @@ class GameBoard:
 def moveCost(a,b):
     if b<8:
         a,b=b,a
+    assert a<8 and b>=8
     cost = 1+(a%2) # To the end of the row
     roomExit = a//2+9.5
     if b>roomExit:
-        cost+= (b-floor(roomExit))
+        cost+= len([x for x in roomEnds if x>roomExit and x<=b])
     else:
-        cost+= (ceil(roomExit)-b)
+        cost+= len([x for x in roomEnds if x<roomExit and x>=b])
     return cost
             
 
-f = open("input/day23.test")
+f = open("input/day23.in")
 f.readline()
 f.readline()
 p =  f.readline().strip().strip("#").split("#")
 p += f.readline().strip().strip("#").split("#")
 board = [p[y+4*x] for y in range(4) for x in range(2)] + [None]*7
 allBoards = [GameBoard(board)]
+visitedBoards = {tuple(allBoards[0].state):0}
 minScore=99999999999999
 i=0
-allStates = set()
 while len(allBoards)>0:
     thisBoard = allBoards.pop()
     allMoves = thisBoard.identifyMoves()
@@ -87,9 +89,10 @@ while len(allBoards)>0:
             newBoard.state[b],newBoard.state[a] = newBoard.state[a],newBoard.state[b]
             if newBoard.isComplete():
                 minScore = min(minScore,newBoard.score)
-            elif newBoard.score<minScore:
+            elif newBoard.score<minScore and (tuple(newBoard.state) not in visitedBoards or visitedBoards[tuple(newBoard.state)]>newBoard.score):
                 allBoards.append(newBoard)
-                allStates.add(tuple(newBoard.state))
+                visitedBoards[tuple(newBoard.state)] = newBoard.score
+                
     i+=1
     print(i,len(allBoards),minScore)
             
