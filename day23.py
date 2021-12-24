@@ -6,6 +6,8 @@ Created on Thu Dec 23 18:30:56 2021
 """
 from math import ceil,floor
 from copy import deepcopy
+import heapq
+from random import randint
 
 roomMap = {0:'A',1:'A',2:'B',3:'B',4:'C',5:'C',6:'D',7:'D'}
 revMap = {'A':[0,1],
@@ -22,6 +24,7 @@ class GameBoard:
     def __init__(self,state):
         self.state = state
         self.score = 0
+        self.minScore = self.potentialScore()
         
     def identifyMoves(self):
         toMove = [ii for ii in range(15) if self.state[ii] is not None]
@@ -56,6 +59,39 @@ class GameBoard:
     def isComplete(self):
         return self.state==['A','A','B','B','C','C','D','D']+[None]*7
     
+    def potentialScore(self):
+        toMove = [ii for ii in range(15) if self.state[ii] is not None]
+        totalScore = self.score
+        for amp in toMove:
+            ampName = self.state[amp]
+            if amp<8:
+                if amp%2==1 and roomMap[amp]==ampName:
+                    continue
+                elif amp%2==1 and self.state[revMap[ampName][1]]!=ampName: # If the deepest member of the room isn't correct
+                    totalScore += costMap[ampName]*(min([moveCost(amp,x)+moveCost(x,revMap[ampName][0]) for x in range(10,13)])+0.5)
+                elif amp%2==1:
+                    totalScore += costMap[ampName]*min([moveCost(amp,x)+moveCost(x,revMap[ampName][0]) for x in range(10,13)])
+                elif roomMap[amp]==ampName and self.state[amp+1]==ampName: # In correct place and so is other room member
+                    continue
+                elif roomMap[amp]==ampName: # Correct place but other is not correct
+                    totalScore += costMap[ampName]*4.5
+                elif self.state[revMap[ampName][1]]!=ampName:
+                    totalScore += costMap[ampName]*(min([moveCost(amp,x)+moveCost(x,revMap[ampName][0]) for x in range(10,13)])+0.5)
+                else:
+                    totalScore += costMap[ampName]*min([moveCost(amp,x)+moveCost(x,revMap[ampName][0]) for x in range(10,13)])
+            else:
+                if self.state[revMap[ampName][1]]==ampName:
+                    totalScore += costMap[ampName]*moveCost(amp,revMap[ampName][0])
+                else:
+                    totalScore += costMap[ampName]*(moveCost(amp,revMap[ampName][0])+0.5)
+        return totalScore
+    
+    def __lt__(self,other):
+        return self.minScore<other.minScore
+    
+    def __gt__(self,other):
+        return self.minScore>other.minScore
+    
 def moveCost(a,b):
     if b<8:
         a,b=b,a
@@ -75,25 +111,27 @@ f.readline()
 p =  f.readline().strip().strip("#").split("#")
 p += f.readline().strip().strip("#").split("#")
 board = [p[y+4*x] for y in range(4) for x in range(2)] + [None]*7
-allBoards = [GameBoard(board)]
-visitedBoards = {tuple(allBoards[0].state):0}
+allBoards = []
+heapq.heappush(allBoards,GameBoard(board))
+visitedBoards = set(tuple(allBoards[0].state))
 minScore=99999999999999
 i=0
 while len(allBoards)>0:
-    thisBoard = allBoards.pop()
+    thisBoard = heapq.heappop(allBoards)
+    if thisBoard.minScore>minScore:
+        continue
     allMoves = thisBoard.identifyMoves()
     for a in allMoves.keys():
         for b in allMoves[a]:
             newBoard = deepcopy(thisBoard)
             newBoard.score += moveCost(a,b)*costMap[newBoard.state[a]]
             newBoard.state[b],newBoard.state[a] = newBoard.state[a],newBoard.state[b]
+            newBoard.minScore = newBoard.potentialScore()
+            tupleState = tuple(newBoard.state)
             if newBoard.isComplete():
                 minScore = min(minScore,newBoard.score)
-            elif newBoard.score<minScore and (tuple(newBoard.state) not in visitedBoards or visitedBoards[tuple(newBoard.state)]>newBoard.score):
-                allBoards.append(newBoard)
-                visitedBoards[tuple(newBoard.state)] = newBoard.score
-                
-    i+=1
-    print(i,len(allBoards),minScore)
-            
+            elif newBoard.minScore<minScore and tupleState not in visitedBoards:
+                heapq.heappush(allBoards,newBoard)
+                visitedBoards.add(tupleState)
+print(minScore)
 
